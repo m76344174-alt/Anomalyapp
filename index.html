@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Anomaly Drop // TMA</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Monetag SDK -->
+    <script src="//libtlv.com/sdk.js" data-zone="11985726" data-sdk="show_11985726"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body {
+            background: var(--tg-theme-bg-color, #0f121a);
+            color: var(--tg-theme-text-color, #ffffff);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 100vh;
+            height: 100dvh;
+            padding: 16px;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .header { text-align: center; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .top-row { display: flex; justify-content: space-between; width: 100%; align-items: center; }
+        .badges-row { display: flex; gap: 6px; align-items: center; }
+        
+        .badge {
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            text-transform: uppercase;
+        }
+        .badge-streak {
+            background: rgba(255, 170, 0, 0.1);
+            color: #ffaa00;
+            border-color: rgba(255, 170, 0, 0.3);
+            cursor: pointer;
+        }
+        .lang-switch {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+        
+        h1 { font-size: 17px; font-weight: 900; }
+        
+        .listing-banner {
+            width: 100%;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 210, 255, 0.1));
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 12px;
+            padding: 8px 12px;
+            text-align: center;
+            font-size: 11px;
+            color: #00ff88;
+            font-weight: 700;
+            line-height: 1.3;
+            cursor: pointer;
+        }
+
+        .terminal-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            width: 100%;
+            gap: 12px;
+        }
+
+        .core-btn {
+            width: 140px;
+            height: 140px;
+            background: radial-gradient(circle, #1a2333 0%, #0c1017 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #00ff88;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            position: relative;
+        }
+        .core-btn:active { transform: scale(0.92); }
+        .core-icon { font-size: 42px; }
+
+        .attempts-info {
+            font-size: 13px;
+            color: var(--tg-theme-hint-color, #8a99ad);
+            text-align: center;
+        }
+        .attempts-info span { color: #00ff88; font-weight: bold; }
+
+        .timer-box {
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #8a99ad);
+            text-align: center;
+        }
+        .timer-box span { font-weight: bold; color: #00ff88; font-family: monospace; }
+
+        .inventory-section {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .inv-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--tg-theme-hint-color, #8a99ad);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .drops-list {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            min-height: 52px;
+        }
+        .drops-list::-webkit-scrollbar { display: none; }
+        
+        .drop-card {
+            background: #161d2e;
+            border: 1px solid #2a3650;
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 11px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .drop-card.common { border-color: #55627c; color: #a2b0cb; }
+        .drop-card.rare { border-color: #00d2ff; color: #00d2ff; }
+        .drop-card.epic { border-color: #a855f7; color: #a855f7; }
+        .drop-card.legendary { border-color: #ffaa00; color: #ffaa00; }
+
+        .actions-panel {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .action-btn {
+            flex: 1;
+            background: #00ff88;
+            color: #06080f;
+            border: none;
+            border-radius: 14px;
+            padding: 14px 8px;
+            font-weight: 800;
+            font-size: 11px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
+            transition: 0.2s;
+            text-align: center;
+        }
+        .action-btn.secondary {
+            background: rgba(0, 210, 255, 0.15);
+            color: #00d2ff;
+            border: 1px solid rgba(0, 210, 255, 0.4);
+            box-shadow: none;
+        }
+        .action-btn.tertiary {
+            background: rgba(255, 170, 0, 0.15);
+            color: #ffaa00;
+            border: 1px solid rgba(255, 170, 0, 0.4);
+            box-shadow: none;
+        }
+        .action-btn.ads-tab-btn {
+            background: rgba(168, 85, 247, 0.15);
+            color: #a855f7;
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            box-shadow: none;
+        }
+        .action-btn:active { opacity: 0.8; }
+
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(6, 8, 15, 0.85);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.2s ease;
+            z-index: 200;
+            padding: 20px;
+        }
+        .modal.open { opacity: 1; pointer-events: auto; }
+        
+        .modal-content {
+            background: #131825;
+            border: 1px solid #2a3650;
+            width: 100%;
+            max-width: 340px;
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .modal-title { font-size: 16px; font-weight: 900; text-align: center; margin-bottom: 4px; }
+        .modal-desc { font-size: 12px; color: var(--tg-theme-hint-color, #8a99ad); text-align: center; line-height: 1.4; }
+        
+        .wallet-input {
+            background: #0c1017;
+            border: 1px solid #2a3650;
+            border-radius: 12px;
+            padding: 12px;
+            color: #fff;
+            font-size: 13px;
+            text-align: center;
+            outline: none;
+        }
+        .wallet-input:focus { border-color: #00ff88; }
+
+        .modal-ad-btn {
+            background: #00ff88;
+            color: #06080f;
+            border: none;
+            border-radius: 12px;
+            padding: 12px;
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,255,136,0.3);
+            text-align: center;
+        }
+        .modal-ad-btn.partner-btn {
+            background: rgba(0, 210, 255, 0.15);
+            color: #00d2ff;
+            border: 1px solid rgba(0, 210, 255, 0.4);
+            box-shadow: none;
+        }
+        
+        .ad-disclaimer {
+            font-size: 10px;
+            color: #8a99ad;
+            text-align: center;
+            line-height: 1.3;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+
+        .ref-rewards-box {
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 11px;
+            color: #a2b0cb;
+        }
+        .ref-reward-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        #popup {
+            position: absolute;
+            top: 20px;
+            background: #00ff88;
+            color: #06080f;
+            font-weight: 900;
+            font-size: 12px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,255,136,0.4);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: 0.3s ease;
+            pointer-events: none;
+            z-index: 300;
+            text-align: center;
+            max-width: 90%;
+        }
+        #popup.show { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body>
+
+    <div id="popup">+ Drop received!</div>
+
+    <!-- Модальное окно кошелька -->
+    <div id="withdrawModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="mWalletTitle">💎 Кошелек TON</div>
+            <div class="modal-desc" id="mWalletDesc">Укажите ваш адрес кошелька для сохранения игровых наград и будущих обновлений.</div>
+            
+            <input type="text" id="walletInput" class="wallet-input" placeholder="Введите ваш TON адрес (UQ...)">
+
+            <button class="action-btn" id="mWithdrawAction" onclick="requestWithdrawal()">Сохранить кошелек</button>
+            <button class="action-btn secondary" id="mCloseBtn1" onclick="closeModal('withdrawModal')">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно правил -->
+    <div id="rulesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="mRulesTitle">📜 Правила игры</div>
+            <div class="modal-desc" id="mRulesDesc">Активируйте терминал, собирайте редкие артефакты, поддерживайте ежедневный стрик входов и повышайте свой ранг в приложении. Просмотр рекламы не является обязательным и доступен исключительно по вашему желанию для получения бонусных попыток.</div>
+            <button class="action-btn secondary" id="mCloseBtn2" onclick="closeModal('rulesModal')">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Окно бонусов и рекламы -->
+    <div id="adsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="mAdsTitle">🎁 Энергетический буст</div>
+            <div class="modal-desc" id="mAdsDesc">Просмотр партнерских материалов восполняет заряд терминала и дает дополнительные попытки.</div>
+            
+            <button class="modal-ad-btn" onclick="watchAdNetwork('adsgram')">
+                📺 <span id="adBtnAdsgram">Adsgram (+1 попытка)</span>
+            </button>
+
+            <button class="modal-ad-btn partner-btn" onclick="watchAdNetwork('monetag')">
+                🌐 <span id="adBtnMonetag">Monetag (+1 попытка)</span>
+            </button>
+            
+            <div class="ad-disclaimer" id="mAdsDisclaimer">
+                ℹ️ Просмотр рекламы полностью доброволен и не обязателен для игры. Вы можете просто дождаться восстановления таймера попыток.
+            </div>
+
+            <button class="action-btn secondary" id="mCloseBtnAds" onclick="closeModal('adsModal')">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно реферальной системы -->
+    <div id="friendModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="mFriendTitle">🤝 Пригласи друга</div>
+            <div class="modal-desc" id="mFriendDesc">Приглашайте пользователей и получайте бонусы:</div>
+            
+            <div class="ref-rewards-box">
+                <div style="font-weight: 700; color: #00ff88; margin-bottom: 2px;" id="refRewardsHeader">🎁 Награда за друга:</div>
+                <div class="ref-reward-item">✅ <span id="refReward1">Редкий предмет в инвентарь</span></div>
+                <div class="ref-reward-item">⚡️ <span id="refReward2">+1 бесплатная попытка</span></div>
+            </div>
+
+            <button class="action-btn" id="mInviteActionBtn" onclick="executeInviteShare()">Поделиться ссылкой</button>
+            <button class="action-btn secondary" id="mCloseBtnFriend" onclick="closeModal('friendModal')">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно стрик-бонусов -->
+    <div id="streakModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="mStreakTitle">🔥 Серия входов</div>
+            <div class="modal-desc" id="streakDesc">Заходите каждый день за бонусами!</div>
+            <button class="action-btn" id="mClaimBtn" onclick="claimStreakBonus()">Забрать бонус дня</button>
+            <button class="action-btn secondary" id="mCloseBtn3" onclick="closeModal('streakModal')">Закрыть</button>
+        </div>
+    </div>
+
+    <div class="header">
+        <div class="top-row">
+            <div class="badges-row">
+                <span class="badge">Anomaly Drop</span>
+                <span class="badge badge-streak" id="streakBadge" onclick="openStreakModal()">🔥 Стрик: 1</span>
+            </div>
+            <button class="lang-switch" onclick="toggleLanguage()">🌐 <span id="langLabel">EN</span></button>
+        </div>
+        <h1 id="userGreeting">Сектор: Онлайн</h1>
+        <div class="listing-banner" id="bannerText" onclick="openModal('withdrawModal')">
+            💎 Подключите кошелек для сохранения прогресса и будущих наград!
+        </div>
+    </div>
+
+    <div class="terminal-container">
+        <div class="core-btn" onclick="tapTerminal()">
+            <div class="core-icon" id="coreIcon">🎁</div>
+        </div>
+        
+        <div class="attempts-info">
+            <span id="attemptsLabel">Доступно попыток:</span> <span id="attemptsCount">3</span> / 3
+        </div>
+        <div class="timer-box">
+            <span id="timerLabel">Следующая попытка через:</span> <span id="dropTimer">15:00</span>
+        </div>
+    </div>
+
+    <div class="inventory-section">
+        <div class="inv-header">
+            <span id="invTitle">Твой инвентарь</span>
+            <span id="counter">0 items</span>
+        </div>
+        <div class="drops-list" id="dropsList">
+            <span style="font-size:11px;color:#555;align-self:center" id="invEmpty">Здесь будут твои артефакты...</span>
+        </div>
+    </div>
+
+    <div class="actions-panel">
+        <button class="action-btn secondary" onclick="openModal('withdrawModal')" id="btnWallet">КОШЕЛЕК</button>
+        <button class="action-btn ads-tab-btn" onclick="openModal('adsModal')" id="btnAdsTab">БОНУСЫ 📺</button>
+        <button class="action-btn tertiary" onclick="openModal('rulesModal')" id="btnRules">ПРАВИЛА</button>
+        <button class="action-btn" onclick="openModal('friendModal')" id="btnInvite">ДРУГ</button>
+    </div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    let currentLang = localStorage.getItem('anomaly_lang') || 'en';
+
+    const i18n = {
+        ru: {
+            greeting: (name) => `Привет, ${name}!`,
+            greetingDefault: "Сектор: Онлайн",
+            banner: "💎 Подключите кошелек для сохранения прогресса и будущих наград!",
+            streak: (days) => `🔥 Стрик: ${days} дн.`,
+            adBtnAdsgram: "Adsgram (+1 попытка)",
+            adBtnMonetag: "Monetag (+1 попытка)",
+            attempts: "Доступно попыток:",
+            timer: "Следующая попытка через:",
+            timerMax: "Максимум",
+            invTitle: "Твой инвентарь",
+            invEmpty: "Здесь будут твои артефакты...",
+            walletBtn: "КОШЕЛЕК",
+            adsTabBtn: "БОНУСЫ 📺",
+            rulesBtn: "ПРАВИЛА",
+            inviteBtn: "ДРУГ",
+            popupDrop: (name, score) => `📦 Выпало: ${name} (${score})`,
+            popupNoAttempts: "❌ Нет попыток! Подожди таймер или открой Бонусы.",
+            popupAdSuccess: "✨ Получена +1 попытка за просмотр рекламы!",
+            popupAdError: "⏳ Реклама временно недоступна",
+            popupStreakClaimed: (days) => `🔥 Бонус получен! Серия: ${days} дн.`,
+            popupStreakDone: "⏳ Ты уже забирал бонус сегодня!",
+            popupRefBonus: "⚡️ Реферальный бонус зачислен: +1 попытка!",
+            walletModalTitle: "💎 Кошелек TON",
+            walletModalDesc: "Укажите ваш адрес кошелька для сохранения игровых наград и будущих обновлений.",
+            walletSaved: "✅ Кошелек успешно сохранен!",
+            walletEmpty: "⚠️ Введите ваш TON-адрес!",
+            rulesModalTitle: "📜 Правила игры",
+            rulesModalDesc: "Активируйте терминал, собирайте редкие артефакты, поддерживайте ежедневный стрик входов и повышайте свой ранг в приложении. Просмотр рекламы не является обязательным и доступен исключительно по вашему желанию для получения бонусных попыток.",
+            adsModalTitle: "🎁 Энергетический буст",
+            adsModalDesc: "Просмотр рекламы восполняет заряд терминала и дает попытки.",
+            adsDisclaimerText: "ℹ️ Просмотр рекламы полностью доброволен и не обязателен для игры. Вы можете просто дождаться восстановления таймера попыток.",
+            friendModalTitle: "🤝 Пригласи друга",
+            friendModalDesc: "Приглашайте пользователей и получайте бонусы:",
+            refRewardsHeaderText: "🎁 Награда за друга:",
+            refReward1Text: "Редкий предмет в инвентарь",
+            refReward2Text: "+1 бесплатная попытка",
+            inviteActionBtnText: "Поделиться ссылкой",
+            streakModalTitle: "🔥 Серия входов",
+            streakModalDesc: (days) => `Доступен бонус за ${days}-й день серии!`,
+            claimBtn: "Забрать бонус дня",
+            closeBtn: "Закрыть",
+            withdrawBtnText: "Сохранить кошелек"
+        },
+        en: {
+            greeting: (name) => `Hello, ${name}!`,
+            greetingDefault: "Sector: Online",
+            banner: "💎 Connect your wallet to save progress and future rewards!",
+            streak: (days) => `🔥 Streak: ${days}d`,
+            adBtnAdsgram: "Adsgram (+1 Attempt)",
+            adBtnMonetag: "Monetag (+1 Attempt)",
+            attempts: "Available attempts:",
+            timer: "Next attempt in:",
+            timerMax: "Maximum",
+            invTitle: "Your Inventory",
+            invEmpty: "Your items will appear here...",
+            walletBtn: "WALLET",
+            adsTabBtn: "BONUS 📺",
+            rulesBtn: "RULES",
+            inviteBtn: "FRIEND",
+            popupDrop: (name, score) => `📦 Drop: ${name} (${score})`,
+            popupNoAttempts: "❌ No attempts left! Wait for timer or open Bonus.",
+            popupAdSuccess: "✨ Got +1 attempt for watching ad!",
+            popupAdError: "⏳ Ad currently unavailable",
+            popupStreakClaimed: (days) => `🔥 Bonus claimed! Streak: ${days}d`,
+            popupStreakDone: "⏳ Already claimed today!",
+            popupRefBonus: "⚡️ Referral bonus added: +1 attempt!",
+            walletModalTitle: "💎 TON Wallet",
+            walletModalDesc: "Enter your wallet address to save in-game rewards and future updates.",
+            walletSaved: "✅ Wallet successfully saved!",
+            walletEmpty: "⚠️ Please enter your TON address!",
+            rulesModalTitle: "📜 Game Rules",
+            rulesModalDesc: "Activate the terminal, collect rare artifacts, maintain daily streaks, and increase your rank. Watching ads is completely optional and available solely at your request to get extra attempts.",
+            adsModalTitle: "🎁 Energy Boost",
+            adsModalDesc: "Watching ads recharges the terminal and grants attempts.",
+            adsDisclaimerText: "ℹ️ Watching ads is completely optional and not required to play. You can simply wait for the attempt timer to restore.",
+            friendModalTitle: "🤝 Invite Friends",
+            friendModalDesc: "Invite users and get bonuses:",
+            refRewardsHeaderText: "🎁 Reward per friend:",
+            refReward1Text: "Rare inventory item",
+            refReward2Text: "+1 free attempt",
+            inviteActionBtnText: "Share Invite Link",
+            streakModalTitle: "🔥 Daily Streak",
+            streakModalDesc: (days) => `Claim your day ${days} bonus!`,
+            claimBtn: "Claim Bonus",
+            closeBtn: "Close",
+            withdrawBtnText: "Save Wallet"
+        }
+    };
+
+    let inventory = JSON.parse(localStorage.getItem('anomaly_inventory')) || [];
+    
+    inventory = inventory.map(i => {
+        if (!i.score) {
+            let defaultScores = { common: "0.01 TON", rare: "0.15 TON", epic: "1.00 TON", legendary: "5.00 TON" };
+            i.score = defaultScores[i.rarity] || "0.01 TON";
+        }
+        return i;
+    });
+
+    let savedAttempts = parseInt(localStorage.getItem('anomaly_attempts'));
+    let attempts = !isNaN(savedAttempts) ? savedAttempts : 3;
+    let savedTime = parseInt(localStorage.getItem('anomaly_time_left'));
+    let timeToNextAttempt = !isNaN(savedTime) ? savedTime : 900;
+    let savedWallet = localStorage.getItem('anomaly_wallet') || '';
+
+    let streakDays = parseInt(localStorage.getItem('anomaly_streak')) || 1;
+    let lastClaimDate = localStorage.getItem('anomaly_last_claim') || '';
+    let todayStr = new Date().toDateString();
+
+    if (savedWallet) {
+        document.getElementById('walletInput').value = savedWallet;
+    }
+
+    updateUI();
+
+    setInterval(() => {
+        if (attempts < 3) {
+            timeToNextAttempt--;
+            if (timeToNextAttempt <= 0) {
+                attempts++;
+                timeToNextAttempt = 900;
+            }
+            saveData();
+            updateUI();
+        }
+    }, 1000);
+
+    function toggleLanguage() {
+        currentLang = currentLang === 'ru' ? 'en' : 'ru';
+        localStorage.setItem('anomaly_lang', currentLang);
+        updateUI();
+    }
+
+    function requestWithdrawal() {
+        const t = i18n[currentLang];
+        const val = document.getElementById('walletInput').value.trim();
+        if (!val) {
+            showPopup(t.walletEmpty);
+            return;
+        }
+        localStorage.setItem('anomaly_wallet', val);
+        showPopup(t.walletSaved);
+        closeModal('withdrawModal');
+    }
+
+    // Динамическая загрузка Adsgram SDK при клике
+    function loadAdsgramScript() {
+        return new Promise((resolve, reject) => {
+            if (window.Adsgram) {
+                resolve(window.Adsgram);
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = "https://sad.adsgram.ai/js/adsgram.min.js";
+            script.async = true;
+            script.onload = () => resolve(window.Adsgram);
+            script.onerror = () => reject(new Error("Failed to load Adsgram script"));
+            document.head.appendChild(script);
+        });
+    }
+
+    async function watchAdNetwork(networkName) {
+        if (networkName === 'adsgram') {
+            try {
+                showPopup("Загрузка рекламы...");
+                const AdsgramLib = await loadAdsgramScript();
+                if (!AdsgramLib) {
+                    showPopup("Error: Adsgram not available");
+                    return;
+                }
+                const adController = AdsgramLib.init({ blockId: "49960" });
+                const result = await adController.show();
+                if (result && result.done) {
+                    grantAdReward();
+                } else {
+                    showPopup(i18n[currentLang].popupAdError);
+                }
+            } catch (e) {
+                console.error("Adsgram error:", e);
+                showPopup("Adsgram error: " + (e.message || "network error"));
+            }
+        } else if (networkName === 'monetag') {
+            if (typeof show_11985726 === 'function') {
+                show_11985726().then(() => {
+                    grantAdReward();
+                }).catch((e) => {
+                    console.error("Monetag error:", e);
+                    showPopup(i18n[currentLang].popupAdError);
+                });
+            } else {
+                showPopup("Error: Monetag not loaded");
+            }
+        }
+    }
+
+    function grantAdReward() {
+        attempts++;
+        saveData();
+        updateUI();
+        closeModal('adsModal');
+        showPopup(i18n[currentLang].popupAdSuccess);
+    }
+
+    function tapTerminal() {
+        if (attempts <= 0) {
+            showPopup(i18n[currentLang].popupNoAttempts);
+            return;
+        }
+
+        attempts--;
+        saveData();
+        updateUI();
+
+        const icon = document.getElementById('coreIcon');
+        icon.style.transform = 'scale(0.85)';
+        setTimeout(() => icon.style.transform = 'scale(1)', 100);
+
+        triggerDrop();
+    }
+
+    function triggerDrop() {
+        const items = [
+            { name: "Rusty Bolt", nameRu: "Ржавая гайка", rarity: "common", score: "0.01 TON" },
+            { name: "Copper Wire", nameRu: "Медный провод", rarity: "common", score: "0.03 TON" },
+            { name: "Neon Cable", nameRu: "Неоновый кабель", rarity: "rare", score: "0.15 TON" },
+            { name: "RAM Chip v1", nameRu: "Плата памяти v1", rarity: "rare", score: "0.30 TON" },
+            { name: "Quantum Core", nameRu: "Квантовый чип", rarity: "epic", score: "1.00 TON" },
+            { name: "Neuro Helmet Mk.II", nameRu: "Нейрошлем Mk.II", rarity: "legendary", score: "5.00 TON" }
+        ];
+
+        let rand = Math.random() * 100;
+        let item;
+
+        if (rand < 70) {
+            let pool = items.filter(i => i.rarity === 'common');
+            item = pool[Math.floor(Math.random() * pool.length)];
+        } else if (rand < 92) {
+            let pool = items.filter(i => i.rarity === 'rare');
+            item = pool[Math.floor(Math.random() * pool.length)];
+        } else if (rand < 98) {
+            let pool = items.filter(i => i.rarity === 'epic');
+            item = pool[Math.floor(Math.random() * pool.length)];
+        } else {
+            let pool = items.filter(i => i.rarity === 'legendary');
+            item = pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        const earnedItem = {
+            name: item.name,
+            nameRu: item.nameRu,
+            rarity: item.rarity,
+            score: item.score
+        };
+
+        inventory.unshift(earnedItem);
+        saveData();
+        updateUI();
+        
+        let itemName = currentLang === 'ru' ? earnedItem.nameRu : earnedItem.name;
+        showPopup(i18n[currentLang].popupDrop(itemName, earnedItem.score));
+    }
+
+    function updateUI() {
+        const t = i18n[currentLang];
+        
+        document.getElementById('langLabel').innerText = currentLang.toUpperCase();
+        
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            document.getElementById('userGreeting').innerText = t.greeting(tg.initDataUnsafe.user.first_name);
+        } else {
+            document.getElementById('userGreeting').innerText = t.greetingDefault;
+        }
+
+        document.getElementById('bannerText').innerText = t.banner;
+        document.getElementById('streakBadge').innerText = t.streak(streakDays);
+        document.getElementById('adBtnAdsgram').innerText = t.adBtnAdsgram;
+        document.getElementById('adBtnMonetag').innerText = t.adBtnMonetag;
+        document.getElementById('attemptsLabel').innerText = t.attempts;
+        document.getElementById('timerLabel').innerText = t.timer;
+        document.getElementById('invTitle').innerText = t.invTitle;
+        
+        document.getElementById('btnWallet').innerText = t.walletBtn;
+        document.getElementById('btnAdsTab').innerText = t.adsTabBtn;
+        document.getElementById('btnRules').innerText = t.rulesBtn;
+        document.getElementById('btnInvite').innerText = t.inviteBtn;
+
+        document.getElementById('mWalletTitle').innerText = t.walletModalTitle;
+        document.getElementById('mWalletDesc').innerText = t.walletModalDesc;
+        document.getElementById('mWithdrawAction').innerText = t.withdrawBtnText;
+        
+        document.getElementById('mRulesTitle').innerText = t.rulesModalTitle;
+        document.getElementById('mRulesDesc').innerText = t.rulesModalDesc;
+        
+        document.getElementById('mAdsTitle').innerText = t.adsModalTitle;
+        document.getElementById('mAdsDesc').innerText = t.adsModalDesc;
+        document.getElementById('mAdsDisclaimer').innerText = t.adsDisclaimerText;
+
+        document.getElementById('mFriendTitle').innerText = t.friendModalTitle;
+        document.getElementById('mFriendDesc').innerText = t.friendModalDesc;
+        document.getElementById('refRewardsHeader').innerText = t.refRewardsHeaderText;
+        document.getElementById('refReward1').innerText = t.refReward1Text;
+        document.getElementById('refReward2').innerText = t.refReward2Text;
+        document.getElementById('mInviteActionBtn').innerText = t.inviteActionBtnText;
+
+        document.getElementById('mStreakTitle').innerText = t.streakModalTitle;
+        document.getElementById('mClaimBtn').innerText = t.claimBtn;
+        document.getElementById('mCloseBtn1').innerText = t.closeBtn;
+        document.getElementById('mCloseBtn2').innerText = t.closeBtn;
+        document.getElementById('mCloseBtnAds').innerText = t.closeBtn;
+        document.getElementById('mCloseBtnFriend').innerText = t.closeBtn;
+        document.getElementById('mCloseBtn3').innerText = t.closeBtn;
+
+        document.getElementById('attemptsCount').innerText = attempts;
+
+        if (attempts < 3) {
+            let min = Math.floor(timeToNextAttempt / 60);
+            let sec = timeToNextAttempt % 60;
+            document.getElementById('dropTimer').innerText = `${min < 10 ? '0'+min : min}:${sec < 10 ? '0'+sec : sec}`;
+        } else {
+            document.getElementById('dropTimer').innerText = t.timerMax;
+        }
+
+        const list = document.getElementById('dropsList');
+        document.getElementById('counter').innerText = `${inventory.length} items`;
+
+        if (inventory.length === 0) {
+            list.innerHTML = `<span style="font-size:11px;color:#555;align-self:center">${t.invEmpty}</span>`;
+            return;
+        }
+
+        list.innerHTML = inventory.map((i) => `
+            <div class="drop-card ${i.rarity}">
+                <b>${currentLang === 'ru' ? i.nameRu : i.name}</b>
+                <span style="opacity:0.8">${i.score}</span>
+            </div>
+        `).join('');
+    }
+
+    function saveData() {
+        localStorage.setItem('anomaly_inventory', JSON.stringify(inventory));
+        localStorage.setItem('anomaly_attempts', attempts);
+        localStorage.setItem('anomaly_time_left', timeToNextAttempt);
+        localStorage.setItem('anomaly_streak', streakDays);
+        localStorage.setItem('anomaly_last_claim', lastClaimDate);
+    }
+
+    function showPopup(text) {
+        const p = document.getElementById('popup');
+        p.innerText = text;
+        p.classList.add('show');
+        setTimeout(() => p.classList.remove('show'), 3500);
+    }
+
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('open');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('open');
+    }
+
+    function openStreakModal() {
+        const t = i18n[currentLang];
+        document.getElementById('streakDesc').innerText = lastClaimDate === todayStr ? t.popupStreakDone : t.streakModalDesc(streakDays);
+        openModal('streakModal');
+    }
+
+    function claimStreakBonus() {
+        const t = i18n[currentLang];
+        if (lastClaimDate === todayStr) {
+            showPopup(t.popupStreakDone);
+            closeModal('streakModal');
+            return;
+        }
+
+        lastClaimDate = todayStr;
+        streakDays++;
+        saveData();
+        showPopup(t.popupStreakClaimed(streakDays));
+        closeModal('streakModal');
+        updateUI();
+    }
+
+    function executeInviteShare() {
+        const t = i18n[currentLang];
+        const userId = tg.initDataUnsafe?.user ? tg.initDataUnsafe.user.id : '123';
+        const refUrl = `https://t.me/AnomalyDropBot?startapp=ref_${userId}`;
+        const shareText = encodeURIComponent('Join Anomaly Drop & collect items!');
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(refUrl)}&text=${shareText}`;
+
+        attempts++;
+        inventory.unshift({ name: "Copper Wire", nameRu: "Медный провод", rarity: "common", score: "0.03 TON" });
+        
+        saveData();
+        updateUI();
+        closeModal('friendModal');
+        showPopup(t.popupRefBonus);
+
+        if (tg.openTelegramLink) {
+            tg.openTelegramLink(shareUrl);
+        } else {
+            window.open(shareUrl, '_blank');
+        }
+    }
+</script>
+
+</body>
+</html>
