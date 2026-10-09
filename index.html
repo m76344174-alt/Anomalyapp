@@ -505,7 +505,7 @@
             walletModalTitle: "💎 TON Wallet",
             walletModalDesc: "Enter your wallet address to save in-game rewards and future updates.",
             walletSaved: "✅ Wallet successfully saved!",
-            walletEmpty: "⚠️ Please enter your TON address!",
+            walletEmpty: "⚠️ Please enter your TON-address!",
             rulesModalTitle: "📜 Game Rules",
             rulesModalDesc: "Activate the terminal, collect rare artifacts, maintain daily streaks, and increase your rank. Watching ads is completely optional and available solely at your request to get extra attempts.",
             adsModalTitle: "🎁 Energy Boost",
@@ -589,7 +589,7 @@
                     showPopup("Error: Adsgram SDK not loaded");
                     return;
                 }
-                const adController = Adsgram.init({ blockId: "52810" });
+                const adController = Adsgram.init({ blockId: "49960" });
                 const result = await adController.show();
                 if (result && result.done) {
                     grantAdReward();
