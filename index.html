@@ -589,7 +589,7 @@
                     showPopup("Error: Adsgram SDK not loaded");
                     return;
                 }
-                const adController = Adsgram.init({ blockId: "49960" });
+                const adController = Adsgram.init({ blockId: "52904" });
                 const result = await adController.show();
                 if (result && result.done) {
                     grantAdReward();
@@ -601,15 +601,22 @@
                 showPopup("Adsgram error: " + (e.message || "network error"));
             }
         } else if (networkName === 'monetag') {
-            if (typeof show_12001556 === 'function') {
-                show_12001556().then(() => {
-                    grantAdReward();
-                }).catch((e) => {
-                    console.error("Monetag error:", e);
+            const showFn = window.show_12001556 || (typeof show_12001556 === 'function' ? show_12001556 : null);
+            
+            if (showFn) {
+                try {
+                    showFn().then(() => {
+                        grantAdReward();
+                    }).catch((e) => {
+                        console.error("Monetag error:", e);
+                        showPopup(i18n[currentLang].popupAdError);
+                    });
+                } catch (err) {
+                    console.error("Monetag execute error:", err);
                     showPopup(i18n[currentLang].popupAdError);
-                });
+                }
             } else {
-                showPopup("Error: Monetag not loaded");
+                showPopup("Monetag blocked or not loaded");
             }
         }
     }
