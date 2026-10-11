@@ -2,303 +2,523 @@
 <html lang="ru">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Anomaly Drop // TMA</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- Adsgram SDK -->
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        :root {
+            --bg: #080b12;
+            --text: #eef2fa;
+            --muted: #8794ab;
+            --line: rgba(255, 255, 255, 0.07);
+            --glass: rgba(255, 255, 255, 0.04);
+            --green: #00ff88;
+            --cyan: #00d2ff;
+            --amber: #ffaa00;
+            --violet: #a855f7;
+            --display: 'Unbounded', 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --core: clamp(120px, calc(100dvh - 450px), 236px);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        html { background: var(--bg); }
+        button, input { font-family: inherit; }
+        :focus-visible { outline: 2px solid rgba(0, 255, 136, 0.7); outline-offset: 2px; }
+
         body {
-            background: var(--tg-theme-bg-color, #0f121a);
-            color: var(--tg-theme-text-color, #ffffff);
+            font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: space-between;
+            gap: 12px;
             height: 100vh;
             height: 100dvh;
-            padding: 16px;
+            padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
             overflow: hidden;
             user-select: none;
+            -webkit-font-smoothing: antialiased;
+        }
+        /* мягкое свечение за ядром и в углу */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            background:
+                radial-gradient(60% 34% at 50% 40%, rgba(0, 255, 136, 0.10), transparent 72%),
+                radial-gradient(50% 26% at 100% 0%, rgba(0, 210, 255, 0.08), transparent 70%);
         }
 
-        .header { text-align: center; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-        .top-row { display: flex; justify-content: space-between; width: 100%; align-items: center; }
+        .header, .terminal-container, .inventory-section, .actions-panel { width: 100%; max-width: 460px; }
+
+        /* ---------- Шапка ---------- */
+        .header { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        .top-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .badges-row { display: flex; gap: 6px; align-items: center; }
-        
-        .badge {
-            background: rgba(0, 255, 136, 0.1);
-            color: #00ff88;
-            font-size: 9px;
-            font-weight: 800;
-            letter-spacing: 1.5px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            border: 1px solid rgba(0, 255, 136, 0.3);
-            text-transform: uppercase;
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--display);
+            font-weight: 600;
+            font-size: 12px;
+            letter-spacing: 0.01em;
+            color: var(--text);
         }
-        .badge-streak {
-            background: rgba(255, 170, 0, 0.1);
-            color: #ffaa00;
-            border-color: rgba(255, 170, 0, 0.3);
+        .brand-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.9);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 11px;
+            border-radius: 999px;
+            background: rgba(255, 170, 0, 0.10);
+            color: var(--amber);
+            border: 1px solid rgba(255, 170, 0, 0.28);
             cursor: pointer;
+            white-space: nowrap;
         }
         .lang-switch {
-            background: rgba(255, 255, 255, 0.08);
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            font-size: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--glass);
+            color: var(--text);
+            border: 1px solid var(--line);
+            font-size: 12px;
             font-weight: 700;
-            padding: 4px 8px;
-            border-radius: 12px;
+            padding: 6px 10px;
+            border-radius: 999px;
             cursor: pointer;
         }
-        
-        h1 { font-size: 17px; font-weight: 900; }
-        
-        .listing-banner {
-            width: 100%;
-            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 210, 255, 0.1));
-            border: 1px solid rgba(0, 255, 136, 0.3);
-            border-radius: 12px;
-            padding: 8px 12px;
+        .lang-switch svg { width: 14px; height: 14px; color: var(--muted); }
+
+        h1 {
+            font-family: var(--display);
+            font-size: 19px;
+            font-weight: 600;
+            line-height: 1.25;
+            letter-spacing: -0.01em;
             text-align: center;
-            font-size: 11px;
-            color: #00ff88;
-            font-weight: 700;
-            line-height: 1.3;
-            cursor: pointer;
+            text-wrap: balance;
         }
 
+        .i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+        .listing-banner {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.09), rgba(0, 210, 255, 0.05));
+            border: 1px solid rgba(0, 255, 136, 0.22);
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.35;
+            color: #d6fbe9;
+            cursor: pointer;
+            transition: transform 0.12s ease;
+        }
+        .listing-banner:active { transform: scale(0.985); }
+        .banner-ico {
+            width: 32px; height: 32px;
+            border-radius: 11px;
+            display: grid; place-items: center;
+            background: rgba(0, 255, 136, 0.14);
+            color: var(--green);
+            flex-shrink: 0;
+        }
+        .banner-text { flex: 1; text-align: left; }
+        .banner-arrow { color: rgba(0, 255, 136, 0.7); width: 16px; height: 16px; }
+
+        /* ---------- Ядро ---------- */
         .terminal-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             flex: 1;
-            width: 100%;
-            gap: 12px;
+            min-height: 0;
+            gap: 14px;
+        }
+
+        .core-stage {
+            position: relative;
+            width: var(--core);
+            height: var(--core);
+            display: grid;
+            place-items: center;
+            flex-shrink: 0;
+        }
+        .core-ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+        .ring-seg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.09);
+            stroke-width: 4;
+            stroke-linecap: round;
+            transition: stroke 0.35s ease, filter 0.35s ease;
+        }
+        .ring-seg.on {
+            stroke: var(--green);
+            filter: drop-shadow(0 0 5px rgba(0, 255, 136, 0.75));
         }
 
         .core-btn {
-            width: 140px;
-            height: 140px;
-            background: radial-gradient(circle, #1a2333 0%, #0c1017 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid #00ff88;
-            box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
-            cursor: pointer;
-            transition: transform 0.1s ease;
             position: relative;
+            width: 70%;
+            height: 70%;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: radial-gradient(circle at 50% 28%, #24344d 0%, #111926 55%, #090d15 100%);
+            border: 1px solid rgba(0, 255, 136, 0.5);
+            box-shadow:
+                0 0 0 7px rgba(0, 255, 136, 0.035),
+                0 0 44px rgba(0, 255, 136, 0.20),
+                inset 0 1px 0 rgba(255, 255, 255, 0.14),
+                inset 0 -22px 40px rgba(0, 255, 136, 0.07);
+            cursor: pointer;
+            transition: transform 0.12s ease, border-color 0.35s ease, box-shadow 0.35s ease, filter 0.35s ease;
         }
-        .core-btn:active { transform: scale(0.92); }
-        .core-icon { font-size: 42px; }
-
-        .attempts-info {
-            font-size: 13px;
-            color: var(--tg-theme-hint-color, #8a99ad);
-            text-align: center;
+        .core-btn:active { transform: scale(0.94); }
+        .core-btn::before {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 255, 136, 0.55);
+            pointer-events: none;
+            animation: pulse 3.4s ease-out infinite;
         }
-        .attempts-info span { color: #00ff88; font-weight: bold; }
-
-        .timer-box {
-            font-size: 12px;
-            color: var(--tg-theme-hint-color, #8a99ad);
-            text-align: center;
-        }
-        .timer-box span { font-weight: bold; color: #00ff88; font-family: monospace; }
-
-        .inventory-section {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.03);
+        .core-btn::after {
+            content: "";
+            position: absolute;
+            inset: 13%;
+            border-radius: 50%;
             border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 16px;
-            padding: 12px;
-            margin-bottom: 10px;
+            pointer-events: none;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.55; }
+            100% { transform: scale(1.22); opacity: 0; }
+        }
+        .core-icon {
+            font-size: calc(var(--core) * 0.21);
+            line-height: 1;
+            transition: transform 0.12s ease;
+            filter: drop-shadow(0 6px 14px rgba(0, 255, 136, 0.25));
+        }
+        body.is-empty .core-btn {
+            border-color: rgba(255, 255, 255, 0.14);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            filter: saturate(0.35) brightness(0.85);
+        }
+        body.is-empty .core-btn::before { animation: none; opacity: 0; }
+
+        .status { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .attempts-info {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+        }
+        #attemptsCount {
+            font-family: var(--display);
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--green);
+        }
+        .timer-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 13px;
+            border-radius: 999px;
+            background: var(--glass);
+            border: 1px solid var(--line);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+        }
+        #dropTimer { color: var(--text); font-weight: 800; font-variant-numeric: tabular-nums; }
+
+        /* ---------- Инвентарь ---------- */
+        .inventory-section {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025));
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            padding: 12px 0 12px 14px;
         }
         .inv-header {
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            padding-right: 14px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--text);
+        }
+        #counter {
             font-size: 11px;
-            color: var(--tg-theme-hint-color, #8a99ad);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-weight: 700;
+            color: var(--muted);
+            background: rgba(255, 255, 255, 0.06);
+            padding: 3px 9px;
+            border-radius: 999px;
         }
         .drops-list {
             display: flex;
             gap: 8px;
             overflow-x: auto;
-            padding-bottom: 4px;
-            min-height: 52px;
+            padding-right: 30px;
+            min-height: 54px;
+            -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent);
+            mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent);
         }
         .drops-list::-webkit-scrollbar { display: none; }
-        
+        .drops-list > span {
+            color: var(--muted) !important;
+            font-size: 12px !important;
+            font-weight: 500;
+        }
+
         .drop-card {
-            background: #161d2e;
-            border: 1px solid #2a3650;
-            border-radius: 8px;
-            padding: 8px 10px;
-            font-size: 11px;
+            --c: #a2b0cb;
+            --c-rgb: 162, 176, 203;
+            position: relative;
+            min-width: 112px;
+            padding: 9px 26px 9px 12px;
+            border-radius: 14px;
+            background: linear-gradient(160deg, rgba(var(--c-rgb), 0.15), rgba(var(--c-rgb), 0.04));
+            border: 1px solid rgba(var(--c-rgb), 0.35);
             white-space: nowrap;
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
             justify-content: center;
+            gap: 2px;
         }
-        .drop-card.common { border-color: #55627c; color: #a2b0cb; }
-        .drop-card.rare { border-color: #00d2ff; color: #00d2ff; }
-        .drop-card.epic { border-color: #a855f7; color: #a855f7; }
-        .drop-card.legendary { border-color: #ffaa00; color: #ffaa00; }
+        .drop-card::before {
+            content: "";
+            position: absolute;
+            top: 11px; right: 11px;
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--c);
+            box-shadow: 0 0 8px var(--c);
+        }
+        .drop-card b { font-size: 12px; font-weight: 700; color: var(--text); }
+        .drop-card span { font-size: 11px; font-weight: 700; color: var(--c); opacity: 1 !important; }
+        .drop-card.rare { --c: #00d2ff; --c-rgb: 0, 210, 255; }
+        .drop-card.epic { --c: #a855f7; --c-rgb: 168, 85, 247; }
+        .drop-card.legendary { --c: #ffaa00; --c-rgb: 255, 170, 0; background: linear-gradient(160deg, rgba(255, 170, 0, 0.24), rgba(255, 170, 0, 0.06)); border-color: rgba(255, 170, 0, 0.55); }
 
+        /* ---------- Нижняя панель ---------- */
         .actions-panel {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2px;
+            padding: 6px;
+            border-radius: 26px;
+            background: var(--glass);
+            border: 1px solid var(--line);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+        }
+        .dock-btn {
+            --c-rgb: 0, 210, 255;
             display: flex;
-            gap: 8px;
-            width: 100%;
-        }
-
-        .action-btn {
-            flex: 1;
-            background: #00ff88;
-            color: #06080f;
-            border: none;
-            border-radius: 14px;
-            padding: 14px 8px;
-            font-weight: 800;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 0 7px;
+            border: 0;
+            border-radius: 20px;
+            background: transparent;
+            color: #c3cde0;
             font-size: 11px;
+            font-weight: 700;
             cursor: pointer;
-            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
-            transition: 0.2s;
-            text-align: center;
+            transition: background 0.15s ease;
         }
-        .action-btn.secondary {
-            background: rgba(0, 210, 255, 0.15);
-            color: #00d2ff;
-            border: 1px solid rgba(0, 210, 255, 0.4);
-            box-shadow: none;
+        .dock-btn:active { background: rgba(var(--c-rgb), 0.12); }
+        .dock-ico {
+            width: 42px; height: 30px;
+            border-radius: 13px;
+            display: grid; place-items: center;
+            background: rgba(var(--c-rgb), 0.13);
+            color: rgb(var(--c-rgb));
         }
-        .action-btn.tertiary {
-            background: rgba(255, 170, 0, 0.15);
-            color: #ffaa00;
-            border: 1px solid rgba(255, 170, 0, 0.4);
-            box-shadow: none;
-        }
-        .action-btn.ads-tab-btn {
-            background: rgba(168, 85, 247, 0.15);
-            color: #a855f7;
-            border: 1px solid rgba(168, 85, 247, 0.4);
-            box-shadow: none;
-        }
-        .action-btn:active { opacity: 0.8; }
+        .dock-btn.t-violet { --c-rgb: 168, 85, 247; }
+        .dock-btn.t-blue { --c-rgb: 96, 165, 250; }
+        .dock-btn.t-amber { --c-rgb: 255, 170, 0; }
+        .dock-btn.t-green { --c-rgb: 0, 255, 136; }
 
+        /* ---------- Модальные окна (нижняя шторка) ---------- */
         .modal {
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(6, 8, 15, 0.85);
-            backdrop-filter: blur(5px);
+            inset: 0;
+            background: rgba(4, 6, 11, 0.72);
+            -webkit-backdrop-filter: blur(6px);
+            backdrop-filter: blur(6px);
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             justify-content: center;
             opacity: 0;
             pointer-events: none;
-            transition: 0.2s ease;
+            transition: opacity 0.25s ease;
             z-index: 200;
-            padding: 20px;
         }
         .modal.open { opacity: 1; pointer-events: auto; }
-        
+
         .modal-content {
-            background: #131825;
-            border: 1px solid #2a3650;
             width: 100%;
-            max-width: 340px;
-            border-radius: 20px;
-            padding: 20px;
+            max-width: 460px;
+            background: linear-gradient(180deg, #161d2d, #0f1522);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 0;
+            border-radius: 28px 28px 0 0;
+            padding: 10px 20px calc(20px + env(safe-area-inset-bottom));
             display: flex;
             flex-direction: column;
             gap: 12px;
+            transform: translateY(32px);
+            transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
-        .modal-title { font-size: 16px; font-weight: 900; text-align: center; margin-bottom: 4px; }
-        .modal-desc { font-size: 12px; color: var(--tg-theme-hint-color, #8a99ad); text-align: center; line-height: 1.4; }
-        
-        .wallet-input {
-            background: #0c1017;
-            border: 1px solid #2a3650;
-            border-radius: 12px;
-            padding: 12px;
-            color: #fff;
-            font-size: 13px;
-            text-align: center;
-            outline: none;
+        .modal.open .modal-content { transform: none; }
+        .modal-content::before {
+            content: "";
+            align-self: center;
+            width: 38px; height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.14);
+            margin-bottom: 8px;
         }
-        .wallet-input:focus { border-color: #00ff88; }
+        .modal-title { font-family: var(--display); font-size: 15px; font-weight: 600; text-align: center; }
+        .modal-desc { font-size: 13px; line-height: 1.5; color: var(--muted); text-align: center; text-wrap: pretty; }
+        #mRulesDesc { text-align: left; }
 
-        .modal-ad-btn {
-            background: #00ff88;
-            color: #06080f;
-            border: none;
-            border-radius: 12px;
-            padding: 12px;
-            font-weight: 800;
-            font-size: 13px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,255,136,0.3);
-            text-align: center;
+        .wallet-input {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 14px;
+            padding: 14px;
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 600;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
-        
+        .wallet-input::placeholder { color: #566177; font-weight: 500; }
+        .wallet-input:focus { border-color: rgba(0, 255, 136, 0.7); box-shadow: 0 0 0 4px rgba(0, 255, 136, 0.10); }
+
+        .action-btn, .modal-ad-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: 0;
+            border-radius: 16px;
+            padding: 15px 16px;
+            font-size: 14px;
+            font-weight: 800;
+            color: #04110b;
+            background: var(--green);
+            box-shadow: 0 10px 26px -8px rgba(0, 255, 136, 0.55);
+            cursor: pointer;
+            transition: transform 0.12s ease, opacity 0.12s ease;
+        }
+        .action-btn:active, .modal-ad-btn:active { transform: scale(0.98); opacity: 0.9; }
+        .action-btn.secondary {
+            background: rgba(255, 255, 255, 0.06);
+            color: #c9d3e6;
+            box-shadow: none;
+        }
+
         .ad-disclaimer {
-            font-size: 10px;
-            color: #8a99ad;
+            font-size: 11px;
+            line-height: 1.45;
+            color: var(--muted);
             text-align: center;
-            line-height: 1.3;
-            background: rgba(255, 255, 255, 0.03);
-            padding: 8px;
-            border-radius: 8px;
-            border: 1px dashed rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.035);
+            padding: 10px 12px;
+            border-radius: 12px;
         }
 
         .ref-rewards-box {
-            background: rgba(0, 255, 136, 0.05);
-            border: 1px solid rgba(0, 255, 136, 0.2);
-            border-radius: 12px;
-            padding: 10px;
+            background: rgba(0, 255, 136, 0.06);
+            border: 1px solid rgba(0, 255, 136, 0.18);
+            border-radius: 16px;
+            padding: 12px 14px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            font-size: 11px;
-            color: #a2b0cb;
+            gap: 8px;
+            font-size: 13px;
         }
-        .ref-reward-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: #fff;
-            font-weight: 600;
-        }
+        .ref-reward-item { display: flex; align-items: center; gap: 8px; color: var(--text); font-weight: 600; }
 
+        /* ---------- Уведомление ---------- */
         #popup {
-            position: absolute;
-            top: 20px;
-            background: #00ff88;
-            color: #06080f;
-            font-weight: 900;
-            font-size: 12px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,255,136,0.4);
+            position: fixed;
+            top: calc(12px + env(safe-area-inset-top));
+            left: 50%;
+            transform: translate(-50%, -16px);
+            width: max-content;
+            max-width: calc(100% - 32px);
+            background: rgba(18, 25, 40, 0.94);
+            -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(0, 255, 136, 0.35);
+            color: var(--text);
+            font-weight: 700;
+            font-size: 13px;
+            line-height: 1.35;
+            padding: 10px 16px;
+            border-radius: 16px;
+            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
             opacity: 0;
-            transform: translateY(-20px);
-            transition: 0.3s ease;
+            transition: opacity 0.25s ease, transform 0.3s ease;
             pointer-events: none;
             z-index: 300;
             text-align: center;
-            max-width: 90%;
         }
-        #popup.show { opacity: 1; transform: translateY(0); }
+        #popup.show { opacity: 1; transform: translate(-50%, 0); }
+
+        /* ---------- Низкие экраны ---------- */
+        @media (max-height: 640px) {
+            body { gap: 10px; padding-top: 8px; }
+            .header { gap: 8px; }
+            h1 { font-size: 17px; }
+            .banner-ico { width: 26px; height: 26px; border-radius: 9px; }
+            .listing-banner { padding: 7px 10px; font-size: 11px; }
+            .dock-ico { height: 26px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .core-btn::before { animation: none; opacity: 0; }
+            * { transition-duration: 0.01ms !important; }
+        }
     </style>
 </head>
 <body>
@@ -310,7 +530,7 @@
         <div class="modal-content">
             <div class="modal-title" id="mWalletTitle">💎 Кошелек TON</div>
             <div class="modal-desc" id="mWalletDesc">Укажите ваш адрес кошелька для сохранения игровых наград и будущих обновлений.</div>
-            
+
             <input type="text" id="walletInput" class="wallet-input" placeholder="Введите ваш TON адрес (UQ...)">
 
             <button class="action-btn" id="mWithdrawAction" onclick="requestWithdrawal()">Сохранить кошелек</button>
@@ -332,11 +552,12 @@
         <div class="modal-content">
             <div class="modal-title" id="mAdsTitle">🎁 Энергетический буст</div>
             <div class="modal-desc" id="mAdsDesc">Просмотр партнерских материалов восполняет заряд терминала и дает дополнительные попытки.</div>
-            
+
             <button class="modal-ad-btn" onclick="watchAdsgram()">
-                📺 <span id="adBtnAdsgram">Смотреть рекламу (+1 попытка)</span>
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m10 8 6 4-6 4z"/></svg>
+                <span id="adBtnAdsgram">Смотреть рекламу (+1 попытка)</span>
             </button>
-            
+
             <div class="ad-disclaimer" id="mAdsDisclaimer">
                 ℹ️ Просмотр рекламы полностью доброволен и не обязателен для игры. Вы можете просто дождаться восстановления таймера попыток.
             </div>
@@ -350,9 +571,9 @@
         <div class="modal-content">
             <div class="modal-title" id="mFriendTitle">🤝 Пригласи друга</div>
             <div class="modal-desc" id="mFriendDesc">Приглашайте пользователей и получайте бонусы:</div>
-            
+
             <div class="ref-rewards-box">
-                <div style="font-weight: 700; color: #00ff88; margin-bottom: 2px;" id="refRewardsHeader">🎁 Награда за друга:</div>
+                <div style="font-weight: 800; color: #00ff88;" id="refRewardsHeader">🎁 Награда за друга:</div>
                 <div class="ref-reward-item">✅ <span id="refReward1">Редкий предмет в инвентарь</span></div>
                 <div class="ref-reward-item">⚡️ <span id="refReward2">+1 бесплатная попытка</span></div>
             </div>
@@ -374,28 +595,42 @@
 
     <div class="header">
         <div class="top-row">
+            <span class="brand"><i class="brand-dot"></i>Anomaly Drop</span>
             <div class="badges-row">
-                <span class="badge">Anomaly Drop</span>
                 <span class="badge badge-streak" id="streakBadge" onclick="openStreakModal()">🔥 Стрик: 1</span>
+                <button class="lang-switch" onclick="toggleLanguage()">
+                    <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                    <span id="langLabel">EN</span>
+                </button>
             </div>
-            <button class="lang-switch" onclick="toggleLanguage()">🌐 <span id="langLabel">EN</span></button>
         </div>
         <h1 id="userGreeting">Сектор: Онлайн</h1>
-        <div class="listing-banner" id="bannerText" onclick="openModal('withdrawModal')">
-            💎 Подключите кошелек для сохранения прогресса и будущих наград!
+        <div class="listing-banner" onclick="openModal('withdrawModal')">
+            <span class="banner-ico"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41l-7.59-7.59a2.41 2.41 0 0 0-3.41 0Z"/></svg></span>
+            <span class="banner-text" id="bannerText">Подключите кошелек для сохранения прогресса и будущих наград!</span>
+            <svg class="i banner-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
         </div>
     </div>
 
     <div class="terminal-container">
-        <div class="core-btn" onclick="tapTerminal()">
-            <div class="core-icon" id="coreIcon">🎁</div>
+        <div class="core-stage">
+            <svg class="core-ring" viewBox="0 0 220 220" aria-hidden="true">
+                <circle class="ring-seg" cx="110" cy="110" r="104" pathLength="360" stroke-dasharray="96 264" transform="rotate(-78 110 110)"/>
+                <circle class="ring-seg" cx="110" cy="110" r="104" pathLength="360" stroke-dasharray="96 264" transform="rotate(42 110 110)"/>
+                <circle class="ring-seg" cx="110" cy="110" r="104" pathLength="360" stroke-dasharray="96 264" transform="rotate(162 110 110)"/>
+            </svg>
+            <div class="core-btn" onclick="tapTerminal()">
+                <div class="core-icon" id="coreIcon">🎁</div>
+            </div>
         </div>
-        
-        <div class="attempts-info">
-            <span id="attemptsLabel">Доступно попыток:</span> <span id="attemptsCount">3</span> / 3
-        </div>
-        <div class="timer-box">
-            <span id="timerLabel">Следующая попытка через:</span> <span id="dropTimer">15:00</span>
+
+        <div class="status">
+            <div class="attempts-info">
+                <span id="attemptsLabel">Доступно попыток:</span> <span id="attemptsCount">3</span> <span>/ 3</span>
+            </div>
+            <div class="timer-box">
+                <span id="timerLabel">Следующая попытка через:</span> <span id="dropTimer">15:00</span>
+            </div>
         </div>
     </div>
 
@@ -410,10 +645,26 @@
     </div>
 
     <div class="actions-panel">
-        <button class="action-btn secondary" onclick="openModal('withdrawModal')" id="btnWallet">КОШЕЛЕК</button>
-        <button class="action-btn ads-tab-btn" onclick="openModal('adsModal')" id="btnAdsTab">БОНУСЫ 📺</button>
-        <button class="action-btn tertiary" onclick="openModal('rulesModal')" id="btnRules">ПРАВИЛА</button>
-        <button class="action-btn" onclick="openModal('friendModal')" id="btnInvite">ДРУГ</button>
+        <button class="dock-btn" onclick="openModal('withdrawModal')">
+            <span class="dock-ico"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg></span>
+            <span id="btnWallet">КОШЕЛЕК</span>
+        </button>
+        <button class="dock-btn t-violet" onclick="openModal('adsModal')">
+            <span class="dock-ico"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg></span>
+            <span id="btnAdsTab">БОНУСЫ</span>
+        </button>
+        <button class="dock-btn t-blue" onclick="openWebSite()">
+            <span class="dock-ico"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></span>
+            <span id="btnSite">САЙТ</span>
+        </button>
+        <button class="dock-btn t-amber" onclick="openModal('rulesModal')">
+            <span class="dock-ico"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg></span>
+            <span id="btnRules">ПРАВИЛА</span>
+        </button>
+        <button class="dock-btn t-green" onclick="openModal('friendModal')">
+            <span class="dock-ico"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg></span>
+            <span id="btnInvite">ДРУГ</span>
+        </button>
     </div>
 
 <script>
@@ -426,7 +677,7 @@
         ru: {
             greeting: (name) => `Привет, ${name}!`,
             greetingDefault: "Сектор: Онлайн",
-            banner: "💎 Подключите кошелек для сохранения прогресса и будущих наград!",
+            banner: "Подключите кошелек для сохранения прогресса и будущих наград!",
             streak: (days) => `🔥 Стрик: ${days} дн.`,
             adBtnAdsgram: "Смотреть рекламу (+1 попытка)",
             attempts: "Доступно попыток:",
@@ -434,10 +685,11 @@
             timerMax: "Максимум",
             invTitle: "Твой инвентарь",
             invEmpty: "Здесь будут твои артефакты...",
-            walletBtn: "КОШЕЛЕК",
-            adsTabBtn: "БОНУСЫ 📺",
-            rulesBtn: "ПРАВИЛА",
-            inviteBtn: "ДРУГ",
+            walletBtn: "Кошелёк",
+            adsTabBtn: "Бонусы",
+            siteBtn: "Сайт",
+            rulesBtn: "Правила",
+            inviteBtn: "Друг",
             popupDrop: (name, score) => `📦 Выпало: ${name} (${score})`,
             popupNoAttempts: "❌ Нет попыток! Подожди таймер или открой Бонусы.",
             popupAdSuccess: "✨ Получена +1 попытка за просмотр рекламы!",
@@ -469,7 +721,7 @@
         en: {
             greeting: (name) => `Hello, ${name}!`,
             greetingDefault: "Sector: Online",
-            banner: "💎 Connect your wallet to save progress and future rewards!",
+            banner: "Connect your wallet to save progress and future rewards!",
             streak: (days) => `🔥 Streak: ${days}d`,
             adBtnAdsgram: "Adsgram (+1 Attempt)",
             attempts: "Available attempts:",
@@ -477,10 +729,11 @@
             timerMax: "Maximum",
             invTitle: "Your Inventory",
             invEmpty: "Your items will appear here...",
-            walletBtn: "WALLET",
-            adsTabBtn: "BONUS 📺",
-            rulesBtn: "RULES",
-            inviteBtn: "FRIEND",
+            walletBtn: "Wallet",
+            adsTabBtn: "Bonus",
+            siteBtn: "Site",
+            rulesBtn: "Rules",
+            inviteBtn: "Friend",
             popupDrop: (name, score) => `📦 Drop: ${name} (${score})`,
             popupNoAttempts: "❌ No attempts left! Wait for timer or open Bonus.",
             popupAdSuccess: "✨ Got +1 attempt for watching ad!",
@@ -555,6 +808,15 @@
         updateUI();
     }
 
+    function openWebSite() {
+        const siteUrl = 'https://anpmalysiteat2.vercel.app/';
+        if (tg && tg.openLink) {
+            tg.openLink(siteUrl);
+        } else {
+            window.open(siteUrl, '_blank');
+        }
+    }
+
     function requestWithdrawal() {
         const t = i18n[currentLang];
         const val = document.getElementById('walletInput').value.trim();
@@ -583,7 +845,7 @@
             }
         } catch (e) {
             console.error("Adsgram error:", e);
-            showPopup("Adsgram error: " + (e.message || "network error"));
+            showPopup("Adsgram error: " + (e.description || e.message || JSON.stringify(e) || "network error") + (e.state ? " [" + e.state + "]" : ""));
         }
     }
 
@@ -674,6 +936,7 @@
         
         document.getElementById('btnWallet').innerText = t.walletBtn;
         document.getElementById('btnAdsTab').innerText = t.adsTabBtn;
+        document.getElementById('btnSite').innerText = t.siteBtn;
         document.getElementById('btnRules').innerText = t.rulesBtn;
         document.getElementById('btnInvite').innerText = t.inviteBtn;
 
@@ -795,6 +1058,27 @@
             window.open(shareUrl, '_blank');
         }
     }
+</script>
+
+<!-- Только визуальная синхронизация: сегменты кольца и состояние ядра. Логику игры не затрагивает. -->
+<script>
+(function () {
+    try {
+        var cnt = document.getElementById('attemptsCount');
+        var segs = document.querySelectorAll('.ring-seg');
+        function sync() {
+            var n = parseInt(cnt.textContent, 10) || 0;
+            segs.forEach(function (el, i) { el.classList.toggle('on', n > i); });
+            document.body.classList.toggle('is-empty', n <= 0);
+        }
+        new MutationObserver(sync).observe(cnt, { childList: true, characterData: true, subtree: true });
+        sync();
+        if (window.Telegram && Telegram.WebApp) {
+            Telegram.WebApp.setHeaderColor('#080b12');
+            Telegram.WebApp.setBackgroundColor('#080b12');
+        }
+    } catch (e) {}
+})();
 </script>
 
 </body>
