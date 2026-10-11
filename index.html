@@ -167,9 +167,9 @@
             color: #06080f;
             border: none;
             border-radius: 14px;
-            padding: 14px 8px;
+            padding: 14px 6px;
             font-weight: 800;
-            font-size: 11px;
+            font-size: 10px;
             cursor: pointer;
             box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
             transition: 0.2s;
@@ -191,6 +191,12 @@
             background: rgba(168, 85, 247, 0.15);
             color: #a855f7;
             border: 1px solid rgba(168, 85, 247, 0.4);
+            box-shadow: none;
+        }
+        .action-btn.site-btn {
+            background: rgba(0, 210, 255, 0.08);
+            color: #00d2ff;
+            border: 1px solid rgba(0, 210, 255, 0.3);
             box-shadow: none;
         }
         .action-btn:active { opacity: 0.8; }
@@ -412,6 +418,7 @@
     <div class="actions-panel">
         <button class="action-btn secondary" onclick="openModal('withdrawModal')" id="btnWallet">КОШЕЛЕК</button>
         <button class="action-btn ads-tab-btn" onclick="openModal('adsModal')" id="btnAdsTab">БОНУСЫ 📺</button>
+        <button class="action-btn site-btn" onclick="openWebSite()" id="btnSite">САЙТ</button>
         <button class="action-btn tertiary" onclick="openModal('rulesModal')" id="btnRules">ПРАВИЛА</button>
         <button class="action-btn" onclick="openModal('friendModal')" id="btnInvite">ДРУГ</button>
     </div>
@@ -436,6 +443,7 @@
             invEmpty: "Здесь будут твои артефакты...",
             walletBtn: "КОШЕЛЕК",
             adsTabBtn: "БОНУСЫ 📺",
+            siteBtn: "САЙТ",
             rulesBtn: "ПРАВИЛА",
             inviteBtn: "ДРУГ",
             popupDrop: (name, score) => `📦 Выпало: ${name} (${score})`,
@@ -479,6 +487,7 @@
             invEmpty: "Your items will appear here...",
             walletBtn: "WALLET",
             adsTabBtn: "BONUS 📺",
+            siteBtn: "SITE",
             rulesBtn: "RULES",
             inviteBtn: "FRIEND",
             popupDrop: (name, score) => `📦 Drop: ${name} (${score})`,
@@ -553,6 +562,15 @@
         currentLang = currentLang === 'ru' ? 'en' : 'ru';
         localStorage.setItem('anomaly_lang', currentLang);
         updateUI();
+    }
+
+    function openWebSite() {
+        const siteUrl = 'https://anpmalysiteat2.vercel.app/';
+        if (tg && tg.openLink) {
+            tg.openLink(siteUrl);
+        } else {
+            window.open(siteUrl, '_blank');
+        }
     }
 
     function requestWithdrawal() {
@@ -674,6 +692,7 @@
         
         document.getElementById('btnWallet').innerText = t.walletBtn;
         document.getElementById('btnAdsTab').innerText = t.adsTabBtn;
+        document.getElementById('btnSite').innerText = t.siteBtn;
         document.getElementById('btnRules').innerText = t.rulesBtn;
         document.getElementById('btnInvite').innerText = t.inviteBtn;
 
