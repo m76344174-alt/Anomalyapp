@@ -845,7 +845,7 @@
             }
         } catch (e) {
             console.error("Adsgram error:", e);
-            showPopup("Adsgram error: " + (e.message || "network error"));
+            showPopup("Adsgram error: " + (e.description || e.message || "network error") + (e.state ? " [" + e.state + "]" : ""));
         }
     }
 
