@@ -2,14 +2,11 @@
 <html lang="ru">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Anomaly Drop // TMA</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- Adsgram SDK -->
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #080b12;
@@ -845,7 +842,7 @@
             }
         } catch (e) {
             console.error("Adsgram error:", e);
-            showPopup("Adsgram error: " + (e.description || e.message || "network error") + (e.state ? " [" + e.state + "]" : ""));
+            showPopup("Adsgram error: " + (e.description || e.message || JSON.stringify(e) || "network error") + (e.state ? " [" + e.state + "]" : ""));
         }
     }
 
@@ -1060,26 +1057,6 @@
     }
 </script>
 
-<!-- Только визуальная синхронизация: сегменты кольца и состояние ядра. Логику игры не затрагивает. -->
-<script>
-(function () {
-    try {
-        var cnt = document.getElementById('attemptsCount');
-        var segs = document.querySelectorAll('.ring-seg');
-        function sync() {
-            var n = parseInt(cnt.textContent, 10) || 0;
-            segs.forEach(function (el, i) { el.classList.toggle('on', n > i); });
-            document.body.classList.toggle('is-empty', n <= 0);
-        }
-        new MutationObserver(sync).observe(cnt, { childList: true, characterData: true, subtree: true });
-        sync();
-        if (window.Telegram && Telegram.WebApp) {
-            Telegram.WebApp.setHeaderColor('#080b12');
-            Telegram.WebApp.setBackgroundColor('#080b12');
-        }
-    } catch (e) {}
-})();
-</script>
 
 </body>
 </html>
